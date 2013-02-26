@@ -1,4 +1,5 @@
 import logging
+import time
 from beaker.exceptions import InvalidCacheBackendError
 
 from beaker_extensions.nosql import Container
@@ -28,10 +29,12 @@ class RiakManager(NoSqlManager):
     def set_value(self, key, value):
         val = self.bucket.get(self._format_key(key))
         if not val.exists():
-            self.bucket.new(self._format_key(key), value).store()
+            val = self.bucket.new(self._format_key(key), value)
         else:
             val.set_data(value)
-            val.store()
+        val.remove_index('updated_int')
+        val.add_index('updated_int', int(time.time()))
+        val.store()
 
     def __getitem__(self, key):
         return self.bucket.get(self._format_key(key)).get_data()
